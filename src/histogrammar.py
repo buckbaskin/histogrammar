@@ -120,7 +120,7 @@ class HistogramFilter(object):
         self.map = SparseMap(default_probability=0.1, resolution=0.2)
         self.min_prob = 0.0001
         self.max_prob = 1.0000
-        self.update_math = BayesBinaryBinaryModel(0.95, 0.001)
+        self.update_math = BayesBinaryBinaryModel(0.90, 0.01)
 
     def __unpack_scan(self, last_scan):
         return last_scan

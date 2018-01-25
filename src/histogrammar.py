@@ -1,6 +1,6 @@
-import numpy as np
+# import numpy as np
 
-from math import floor
+from math import ceil, cos, floor, sin
 
 class SparseMap(object):
     def __init__(self, default_probability=0.01, resolution=0.2):
@@ -87,6 +87,119 @@ class SparseMap(object):
         for pair in self.data.iteritems():
             yield (self.__expand_key(pair[0]), pair[1])
 
+class BayesBinaryBinaryModel(object):
+    def __init__(self, p_true_true, p_true_false):
+        # p(hit|obstacle)
+        self.ptt = p_true_true
+        # p(hit|no obsatcle)
+        self.ptf = p_true_false
+        # p(no hit|obstacle)
+        self.pft = 1.0 - p_true_true
+        # p(no hit|no obstacle)
+        self.pff = 1.0 - p_true_false
+
+    def posterior_from_true(self, prior):
+        '''
+        Posterior Probability when getting a true reading
+        Ex. p(obstacle|scan hit)
+        '''
+        p_scan_hit = self.ptt * prior + self.ptf * (1.0 - prior)
+        return (self.ptt / p_scan_hit) * prior
+
+
+    def posterior_from_false(self, prior):
+        '''
+        Posterior Probability when getting a true reading
+        Ex. p(obstacle|scan miss)
+        '''
+        p_scan_miss = self.pft * prior + self.pff * (1.0 - prior)
+        return (self.pft / p_scan_miss) * prior
 
 class HistogramFilter(object):
-    pass
+    def __init__(self, field_x, field_y):
+        self.map = SparseMap(default_probability=0.1, resolution=0.2)
+        self.update_math = BayesBinaryBinaryModel(0.95, 0.001)
+
+    def update(self, last_odom, last_scan):
+        x, y, heading = self.__unpack_odom(last_odom)
+        heading_offset, heading_step, rays = self.__unpack_scan(last_scan)
+        current_heading = heading + heading_offset
+        for ray_length in rays:
+            self._clear_with_ray(x, y, current_heading, ray_length)
+            self._increase_ray_terminator(x, y, current_heading, ray_length)
+
+    def _clear_with_ray(self, start_x, start_y, heading, length):
+        coords = list(self._iterate_ray_trace(start_x, start_y, heading, length))
+        for coord in coords[:-1]:
+            prior = self.map[coord]
+            self.map[coord] = self.update_math.posterior_from_false(prior)
+
+    def _increase_ray_terminator(self, start_x, start_y, heading, length):
+        pass
+
+    def _iterate_ray_trace(self, start_x, start_y, heading, length):
+        '''
+        Iterate over every block that the ray trace hits
+        '''
+        x = start_x
+        y = start_y
+        y_inc = sin(heading)
+        x_inc = cos(heading)
+        dist_traveled = 0
+        while dist_traveled < length:
+            yield (x, y,)
+            if x_inc == 0:
+                next_x = None
+            elif x_inc > 0:
+                next_x = ceil(x / self.map.resolution) * self.map.resolution
+                if next_x <= x:
+                    next_x += self.map.resolution
+            elif x_inc < 0:
+                next_x = floor(x / self.map.resolution) * self.map.resolution
+                if next_x >= x:
+                    next_x -= self.map.resolution
+       
+            if y_inc == 0:
+                next_y = None
+            elif y == 0:
+                if y_inc > 0:
+                    next_y = self.map.resolution
+                else:
+                    next_y = -self.map.resolution
+            elif y_inc > 0 and y > 0 or y_inc < 0 and y < 0:
+                next_y = ceil(y / self.map.resolution) * self.map.resolution
+                if next_y <= y:
+                    next_y += self.map.resolution
+            elif y_inc < 0 and y > 0 or y_inc < 0 and y > 0:
+                next_y = floor(y / self.map.resolution) * self.map.resolution
+                if next_y >= y:
+                    next_y -= self.map.resolution
+
+
+            if next_x is not None:
+                dist_to_next_x = (next_x - x) / x_inc
+            if next_y is not None:
+                dist_to_next_y = (next_y - y) / y_inc
+
+            if next_x is None or next_y is None:
+                if next_x is not None:
+                    dist_traveled += dist_to_next_x
+                elif next_y is not None:
+                    dist_traveled += dist_to_next_y
+                else:
+                    raise NotImplementedError()
+            else:
+                small_check = min(dist_to_next_x, dist_to_next_y)
+                if (small_check < 0.001):
+                    small_check = 0.001
+                dist_traveled += small_check
+            x = start_x + dist_traveled * cos(heading)
+            y = start_y + dist_traveled * sin(heading)
+
+    def _last_block(self, start_x, start_y, heading, length):
+        '''
+        Jump to the end of the ray trace
+        '''
+        dx = length * cos(heading)
+        dy = length * sin(heading)
+        return (start_x + dx, start_y + dy,)

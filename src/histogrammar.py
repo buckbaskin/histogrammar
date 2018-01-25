@@ -118,7 +118,15 @@ class BayesBinaryBinaryModel(object):
 class HistogramFilter(object):
     def __init__(self, field_x, field_y):
         self.map = SparseMap(default_probability=0.1, resolution=0.2)
+        self.min_prob = 0.0001
+        self.max_prob = 1.0000
         self.update_math = BayesBinaryBinaryModel(0.95, 0.001)
+
+    def __unpack_scan(self, last_scan):
+        return last_scan
+
+    def __unpack_odom(self, last_odom):
+        return last_odom
 
     def update(self, last_odom, last_scan):
         x, y, heading = self.__unpack_odom(last_odom)
@@ -133,10 +141,18 @@ class HistogramFilter(object):
         for coord in coords[:-1]:
             prior = self.map[coord]
             self.map[coord] = self.update_math.posterior_from_false(prior)
+            if self.map[coord] < self.min_prob:
+                self.map[coord] = self.min_prob
+            if self.map[coord] > self.max_prob:
+                self.map[coord] = self.max_prob
 
     def _increase_ray_terminator(self, start_x, start_y, heading, length):
         coord = self._last_block(start_x, start_y, heading, length)
         self.map[coord] = self.update_math.posterior_from_true(self.map[coord])
+        if self.map[coord] < self.min_prob:
+            self.map[coord] = self.min_prob
+        if self.map[coord] > self.max_prob:
+            self.map[coord] = self.max_prob
 
     def _iterate_ray_trace(self, start_x, start_y, heading, length):
         '''

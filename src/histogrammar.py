@@ -161,6 +161,9 @@ class HistogramFilter(object):
     def _iterate_ray_trace(self, start_x, start_y, heading, length):
         '''
         Iterate over every block that the ray trace hits
+
+        TODO(buckbaskin): This may double count the original square
+        In practice, there shouldn't be an obstacle in the original square
         '''
         x = start_x
         y = start_y

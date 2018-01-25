@@ -135,7 +135,8 @@ class HistogramFilter(object):
             self.map[coord] = self.update_math.posterior_from_false(prior)
 
     def _increase_ray_terminator(self, start_x, start_y, heading, length):
-        pass
+        coord = self._last_block(start_x, start_y, heading, length)
+        self.map[coord] = self.update_math.posterior_from_true(self.map[coord])
 
     def _iterate_ray_trace(self, start_x, start_y, heading, length):
         '''

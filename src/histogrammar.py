@@ -117,6 +117,10 @@ class BayesBinaryBinaryModel(object):
 
 class HistogramFilter(object):
     def __init__(self, field_x, field_y):
+        self.max_x = field_x
+        self.min_x = 0.0
+        self.max_y = field_y
+        self.min_y = 0.0
         self.map = SparseMap(default_probability=0.1, resolution=0.2)
         self.min_prob = 0.0001
         self.max_prob = 1.0000
@@ -163,7 +167,11 @@ class HistogramFilter(object):
         y_inc = sin(heading)
         x_inc = cos(heading)
         dist_traveled = 0
-        while dist_traveled < length:
+        while dist_traveled < length and (
+            x <= self.max_x and
+            x >= self.min_x and
+            y <= self.max_y and
+            y >= self.min_y):
             yield (x, y,)
             if x_inc == 0:
                 next_x = None
@@ -191,7 +199,6 @@ class HistogramFilter(object):
                 next_y = floor(y / self.map.resolution) * self.map.resolution
                 if next_y >= y:
                     next_y -= self.map.resolution
-
 
             if next_x is not None:
                 dist_to_next_x = (next_x - x) / x_inc

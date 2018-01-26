@@ -238,3 +238,9 @@ class HistogramFilter(object):
         dx = length * cos(heading)
         dy = length * sin(heading)
         return (start_x + dx, start_y + dy,)
+
+    def threshold(self, threshold=0.5):
+        for (x, y), probability in self.data.iteritems():
+            print(x, y, probability)
+            if probability >= threshold:
+                yield x, y, probability

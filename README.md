@@ -1,2 +1,3 @@
 # histogrammar
-ROS node for scan matching on a sparse grid
+
+The histogrammar ROS package. The node publishes information about obstacles that match to a sparse grid.

@@ -127,10 +127,18 @@ class HistogramFilter(object):
         self.update_math = BayesBinaryBinaryModel(0.90, 0.01)
 
     def __unpack_scan(self, last_scan):
-        return last_scan
+        heading_offset = last_scan.angle_min
+        heading_step = last_scan.angle_increment
+        rays = last_scan.ranges
+        return heading_offset, heading_step, rays
 
     def __unpack_odom(self, last_odom):
-        return last_odom
+        x = last_odom.pose.pose.position.x
+        y = last_odom.pose.pose.position.y
+        quat = last_odom.pose.pose.orientation
+        heading = 0.0
+        raise NotImplementedError()
+        return x, y, heading
 
     def update(self, last_odom, last_scan):
         x, y, heading = self.__unpack_odom(last_odom)

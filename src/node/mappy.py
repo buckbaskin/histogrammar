@@ -1,4 +1,4 @@
-from histogrammar import HistogramFilter
+from ..histogrammar import HistogramFilter
 from geometry_msgs.msg import Pose, PoseArray
 from math import pi
 from nav_msgs.msg import Odometry

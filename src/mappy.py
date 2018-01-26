@@ -1,4 +1,6 @@
-from ..histogrammar import HistogramFilter
+import rospy
+
+from histogrammar import HistogramFilter
 from geometry_msgs.msg import Pose, PoseArray
 from math import pi
 from nav_msgs.msg import Odometry
@@ -26,6 +28,8 @@ def odom_cb(odom):
     last_odom = odom
 
 if __name__ == '__main__':
+    rospy.init_node('histogram builder')
+
     obstacles_pub = rospy.Publisher('/obstacles', PoseArray, queue_size=1)
     rospy.Subscriber('/odom', Odometry, odom_cb)
     rospy.Subscriber('/scan', LaserScan, scan_cb_factory(obstacles_pub))
